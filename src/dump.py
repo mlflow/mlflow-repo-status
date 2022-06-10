@@ -38,7 +38,7 @@ def main():
     with Session.begin() as session:
         g = GitHubApiClient(per_page=100)
         pprint(g.get_rate_limit())
-        since = (datetime.now() - relativedelta(years=1)).isoformat()
+        since = datetime(1970, 1, 1)
 
         logger.info("Collecting commits")
         commits = g.get_commits(
