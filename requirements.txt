@@ -1,7 +1,0 @@
-sqlalchemy
-requests
-pandas
-plotly
-black
-isort
-flake8
