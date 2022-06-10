@@ -38,7 +38,8 @@ def make_plot(*traces, title):
 def main():
     pd.options.plotting.backend = "plotly"
     dist_dir = Path("dist")
-    shutil.rmtree(dist_dir)
+    if dist_dir.exists():
+        shutil.rmtree(dist_dir)
     dist_assets = dist_dir.joinpath("assets")
     plots_dir = dist_assets.joinpath("plots")
     plots_dir.mkdir(parents=True, exist_ok=True)
