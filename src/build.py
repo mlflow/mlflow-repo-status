@@ -171,7 +171,7 @@ def main():
         <img src="{logo}" alt="logo" height="100px" />
       </a>
       <h1 style="font-size: 36px; font-family: Arial;">
-        Repository Status (updated on {updated_at})
+        Repository Status (updated at {updated_at})
       </h1>
     </div>
     {plots}
@@ -197,7 +197,7 @@ def main():
     index_html.write_text(
         index_html_template.format(
             logo=logo_dst.relative_to(dist_dir),
-            updated_at=now.strftime("%Y-%m-%d"),
+            updated_at=now.strftime("%Y-%m-%d %H:%M:%S"),
             plots=plots_html,
         )
     )
