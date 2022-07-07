@@ -53,8 +53,8 @@ def main():
         # Contributors
         commits = pd.read_sql("SELECT * FROM commits", conn)
         users = pd.read_sql("SELECT * FROM users", conn)
-        commits = commits.merge(users, left_on="user_id", right_on="id")
-        commits = commits[commits["is_mlflow_maintainer"] == 0]
+        # commits = commits.merge(users, left_on="user_id", right_on="id")
+        # commits = commits[commits["is_mlflow_maintainer"] == 0]
         commits["date"] = pd.to_datetime(commits["date"])
         commits = commits.sort_values("date").groupby("user_id").tail(1)
         contributors_by_month = count_by_month(commits, "date")
