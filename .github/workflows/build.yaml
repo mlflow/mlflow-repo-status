@@ -23,6 +23,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run builder
+        env:
+          GITHUB_TOKEN: ${{ secrets.HARUPY_GITHUB_TOKEN }}
         run: |
           python src/dump.py
           python src/build.py
