@@ -22,6 +22,11 @@ class Repo(NamedTuple):
     repo: str
 
 
+class HashableDict(dict):
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
 def main():
     db_path = Path("github.sqlite")
     url = f"sqlite:///{db_path}"
@@ -39,6 +44,7 @@ def main():
         g = GitHubApiClient(per_page=100)
         pprint(g.get_rate_limit())
         since = datetime(1970, 1, 1)
+        # since = datetime(2022, 7, 1)
 
         logger.info("Collecting commits")
         commits = g.get_commits(
@@ -51,12 +57,16 @@ def main():
 
         logger.info("Collecting contributors")
         contributors = g.get_contributors(*repo)
-        mlflow_maintainers = g.get_organization_members("mlflow")
-        session.add_all(
-            M.User.from_gh_objects(
-                contributors, mlflow_maintainers=[m["id"] for m in mlflow_maintainers]
-            )
+        session.add_all(M.User.from_gh_objects(contributors))
+
+        logger.info("Collecting mlflow org members")
+        mlflow_org_members = set(
+            HashableDict(id=m["id"], login=m["login"]) for m in g.get_organization_members("mlflow")
         )
+        collaborators = set(
+            HashableDict(id=c["id"], login=c["login"]) for c in g.get_collaborators(*repo)
+        )
+        session.add_all(M.MlflowOrgMember.from_gh_objects(mlflow_org_members.union(collaborators)))
 
         logger.info("Collecting issues")
         issues = g.get_issues(
@@ -72,13 +82,19 @@ def main():
         discussions = g.get_discussions(*repo)
         session.add_all(M.Discussion.from_gh_objects(discussions))
 
+        logger.info("Collecting stargazers")
+        stargazers = g.get_stargazers(*repo)
+        session.add_all(M.Stargazer.from_gh_objects(stargazers))
+
         pprint(g.get_rate_limit())
 
     with sqlite3.connect(db_path) as conn:
         print(pd.read_sql("SELECT * FROM commits", conn).head())
         print(pd.read_sql("SELECT * FROM users", conn).head())
+        print(pd.read_sql("SELECT * FROM mlflow_org_members", conn).head())
         print(pd.read_sql("SELECT * FROM issues", conn).head())
         print(pd.read_sql("SELECT * FROM discussions", conn).head())
+        print(pd.read_sql("SELECT * FROM stargazers", conn).head())
 
 
 if __name__ == "__main__":

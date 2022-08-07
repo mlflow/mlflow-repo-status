@@ -17,7 +17,7 @@ class GitHubApiClient:
         self.sess.headers.update(
             {
                 "User-Agent": __name__,
-                "Accept": "application/vnd.github.v3+json",
+                "Accept": "application/vnd.github.v3.star+json",
                 "Authorization": "token " + os.getenv(GITHUB_TOKEN_ENV_VAR),
             }
         )
@@ -49,6 +49,12 @@ class GitHubApiClient:
 
     def get_contributors(self, owner, repo, params=None):
         return self.get_paginate(f"/repos/{owner}/{repo}/contributors", params)
+
+    def get_collaborators(self, owner, repo, params=None):
+        return self.get_paginate(f"/repos/{owner}/{repo}/collaborators", params)
+
+    def get_stargazers(self, owner, repo, params=None):
+        return self.get_paginate(f"/repos/{owner}/{repo}/stargazers", params)
 
     def get_issues(self, owner, repo, params=None):
         return self.get_paginate(f"/repos/{owner}/{repo}/issues", params)

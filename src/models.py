@@ -1,3 +1,4 @@
+from ast import Starred
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
@@ -32,23 +33,44 @@ class User(BaseModel):
 
     id = Column(Integer, primary_key=True)
     login = Column(String, unique=True)
-    is_mlflow_maintainer = Column(Boolean)
 
     @classmethod
-    def from_gh_objects(cls, objs, mlflow_maintainers):
+    def from_gh_objects(cls, objs):
         result = []
         for obj in objs:
-            model = cls.from_gh_object(obj, mlflow_maintainers)
+            model = cls.from_gh_object(obj)
             if model:
                 result.append(model)
         return result
 
     @classmethod
-    def from_gh_object(cls, user, mlflow_maintainers):
+    def from_gh_object(cls, user):
         return cls(
             id=user["id"],
             login=user["login"],
-            is_mlflow_maintainer=user["id"] in mlflow_maintainers,
+        )
+
+
+class MlflowOrgMember(BaseModel):
+    __tablename__ = "mlflow_org_members"
+
+    id = Column(Integer, primary_key=True)
+    login = Column(String, unique=True)
+
+    @classmethod
+    def from_gh_objects(cls, objs):
+        result = []
+        for obj in objs:
+            model = cls.from_gh_object(obj)
+            if model:
+                result.append(model)
+        return result
+
+    @classmethod
+    def from_gh_object(cls, user):
+        return cls(
+            id=user["id"],
+            login=user["login"],
         )
 
 
@@ -74,10 +96,28 @@ class Commit(BaseModel):
         )
 
 
+class Stargazer(BaseModel):
+    __tablename__ = "stargazers"
+
+    id = Column(Integer, primary_key=True)
+    starred_at = Column(DateTime)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    @classmethod
+    def from_gh_object(cls, stargazer):
+        if not stargazer["user"]:
+            return
+        return cls(
+            starred_at=parse_datetime(stargazer["starred_at"]),
+            user_id=stargazer["user"]["id"],
+        )
+
+
 class Issue(BaseModel):
     __tablename__ = "issues"
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, primary_key=True)
     number = Column(Integer)
     title = Column(String)
     body = Column(String)
@@ -93,6 +133,7 @@ class Issue(BaseModel):
         closed_at = issue.get("closed_at")
         return cls(
             id=issue["id"],
+            user_id=issue["user"]["id"],
             number=issue["number"],
             title=issue["title"],
             body=issue["body"],
