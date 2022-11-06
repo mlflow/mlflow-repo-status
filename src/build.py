@@ -80,7 +80,7 @@ def main():
     x_tick_vals = pd.date_range(
         firs_commit_date,
         this_month,
-        freq="3M",
+        freq="3MS",
         inclusive="both",
     )
     year_ago = this_month - relativedelta(months=12)
