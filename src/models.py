@@ -80,18 +80,22 @@ class Commit(BaseModel):
     id = Column(String(40), primary_key=True)
     html_url = Column(String)
     url = Column(String)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_name = Column(String, nullable=True)
+    user_login = Column(String, nullable=True)
+    user_email = Column(String, nullable=True)
     date = Column(DateTime)
 
     @classmethod
     def from_gh_object(cls, commit):
-        if not commit["author"]:
-            return
         return cls(
             id=commit["sha"],
             url=commit["url"],
             html_url=commit["html_url"],
-            user_id=commit["author"]["id"],
+            user_id=(commit.get("author") or {}).get("id", 0),
+            user_name=(commit["commit"].get("author") or {}).get("name", ""),
+            user_login=(commit.get("author") or {}).get("login", ""),
+            user_email=(commit["commit"].get("author") or {}).get("email", ""),
             date=parse_datetime(commit["commit"]["committer"]["date"]),
         )
 

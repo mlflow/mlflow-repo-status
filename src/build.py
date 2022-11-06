@@ -54,7 +54,7 @@ def make_plot(*traces, title, x_tick_vals, x_axis_range, y_axis_range):
             x=1,
         ),
         xaxis=dict(
-            tickformat="%B %Y",
+            tickformat="%b %Y",
             tickangle=-45,
             tickvals=x_tick_vals,
             range=x_axis_range,
@@ -96,12 +96,15 @@ def main():
     ]
 
     with sqlite3.connect(db_path) as conn:
+        # set dataframe display width
+        pd.set_option("display.max_colwidth", 300)
         # Contributors
-        commits = pd.read_sql("SELECT * FROM commits", conn)
+        raw_commits = pd.read_sql("SELECT * FROM commits", conn)
+        raw_commits["date"] = pd.to_datetime(raw_commits["date"])
         users = pd.read_sql("SELECT * FROM users", conn)
         mlflow_org_members = pd.read_sql("SELECT * FROM mlflow_org_members", conn)
         # Filter out commits from mlflow org members
-        commits = commits.merge(
+        commits = raw_commits.merge(
             mlflow_org_members.rename(columns={"id": "user_id"}).drop("login", axis=1),
             on="user_id",
             how="outer",
@@ -109,11 +112,8 @@ def main():
         )
         commits = commits[(commits._merge == "left_only")].drop("_merge", axis=1)
         commits = commits.merge(users.rename(columns={"id": "user_id"}), on="user_id")
-
-        commits["date"] = pd.to_datetime(commits["date"])
-        commits = commits.sort_values("date").groupby("user_id").head(1)
-        contributors_by_month = count_by_month(commits, "date")
-        contributors_by_month = contributors_by_month
+        first_commits = commits.sort_values("date").groupby("user_name").head(1)
+        contributors_by_month = count_by_month(first_commits, "date")
         contributors_plot_path = plots_dir.joinpath("contributors.html")
         make_plot(
             go.Scatter(
@@ -128,6 +128,24 @@ def main():
                 contributors_by_month[contributors_by_month["date"] >= year_ago]["count"]
             ),
         ).write_html(contributors_plot_path, include_plotlyjs="cdn")
+
+        first_commits = raw_commits.sort_values("date").groupby("user_name").head(1)
+        total_contributors_by_month = count_by_month(first_commits, "date")
+        total_contributors_by_month["count"] = total_contributors_by_month["count"].cumsum()
+        total_contributors_path = plots_dir.joinpath("total_contributors.html")
+        make_plot(
+            go.Scatter(
+                x=total_contributors_by_month["date"],
+                y=total_contributors_by_month["count"],
+                mode="lines+markers",
+            ),
+            title="Contributors",
+            x_tick_vals=x_tick_vals,
+            x_axis_range=x_axis_range,
+            y_axis_range=get_y_axis_range(
+                total_contributors_by_month[total_contributors_by_month["date"] >= year_ago]["count"]
+            ),
+        ).write_html(total_contributors_path, include_plotlyjs="cdn")
 
         # Discussions
         stargazers = pd.read_sql("SELECT * FROM stargazers", conn)
@@ -303,9 +321,10 @@ def main():
 </html>
 """
     plot_tile = [
-        [contributors_plot_path, issues_plot_path],
+        [contributors_plot_path, total_contributors_path],
         [pulls_maintainers_plot_path, pulls_non_maintainers_plot_path],
-        [stargazers_plot_path, discussions_plot_path],
+        [stargazers_plot_path, issues_plot_path],
+        [discussions_plot_path,]
     ]
 
     plots_html = ""
