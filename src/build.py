@@ -80,7 +80,7 @@ def main():
     x_tick_vals = pd.date_range(
         firs_commit_date,
         this_month,
-        freq="MS",
+        freq="3M",
         inclusive="both",
     )
     year_ago = this_month - relativedelta(months=12)
@@ -139,13 +139,39 @@ def main():
                 y=total_contributors_by_month["count"],
                 mode="lines+markers",
             ),
-            title="Contributors",
+            title="Contributors (including maintainers)",
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                total_contributors_by_month[total_contributors_by_month["date"] >= year_ago]["count"]
+                total_contributors_by_month[total_contributors_by_month["date"] >= year_ago][
+                    "count"
+                ]
             ),
         ).write_html(total_contributors_path, include_plotlyjs="cdn")
+
+        # Number of commits
+        commits_count = (
+            raw_commits.groupby(raw_commits["date"].dt.to_period("M"))
+            .count()
+            .rename(columns={"id": "count"})[["count"]]
+            .reset_index()
+        )
+        commits_count["date"] = commits_count["date"].dt.start_time
+        commits_count["count"] = commits_count["count"].cumsum()
+        commits_count_path = plots_dir.joinpath("commits.html")
+        make_plot(
+            go.Scatter(
+                x=commits_count["date"],
+                y=commits_count["count"],
+                mode="lines+markers",
+            ),
+            title="Commits (on master branch)",
+            x_tick_vals=x_tick_vals,
+            x_axis_range=x_axis_range,
+            y_axis_range=get_y_axis_range(
+                commits_count[total_contributors_by_month["date"] >= year_ago]["count"]
+            ),
+        ).write_html(commits_count_path, include_plotlyjs="cdn")
 
         # Discussions
         stargazers = pd.read_sql("SELECT * FROM stargazers", conn)
@@ -324,7 +350,7 @@ def main():
         [contributors_plot_path, total_contributors_path],
         [pulls_maintainers_plot_path, pulls_non_maintainers_plot_path],
         [stargazers_plot_path, issues_plot_path],
-        [discussions_plot_path,]
+        [discussions_plot_path, commits_count_path],
     ]
 
     plots_html = ""
