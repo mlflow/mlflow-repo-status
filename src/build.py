@@ -114,6 +114,7 @@ def main():
         commits = commits.merge(users.rename(columns={"id": "user_id"}), on="user_id")
         first_commits = commits.sort_values("date").groupby("user_name").head(1)
         contributors_by_month = count_by_month(first_commits, "date")
+        contributors_by_month = contributors_by_month[contributors_by_month["date"] < this_month]
         contributors_plot_path = plots_dir.joinpath("contributors.html")
         make_plot(
             go.Scatter(
@@ -132,6 +133,9 @@ def main():
         first_commits = raw_commits.sort_values("date").groupby("user_name").head(1)
         total_contributors_by_month = count_by_month(first_commits, "date")
         total_contributors_by_month["count"] = total_contributors_by_month["count"].cumsum()
+        total_contributors_by_month = total_contributors_by_month[
+            total_contributors_by_month["date"] < this_month
+        ]
         total_contributors_path = plots_dir.joinpath("total_contributors.html")
         make_plot(
             go.Scatter(
@@ -158,6 +162,7 @@ def main():
         )
         commits_count["date"] = commits_count["date"].dt.start_time
         commits_count["count"] = commits_count["count"].cumsum()
+        commits_count = commits_count[commits_count["date"] < this_month]
         commits_count_path = plots_dir.joinpath("commits.html")
         make_plot(
             go.Scatter(
@@ -169,7 +174,7 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                commits_count[total_contributors_by_month["date"] >= year_ago]["count"]
+                commits_count[commits_count["date"] >= year_ago]["count"]
             ),
         ).write_html(commits_count_path, include_plotlyjs="cdn")
 
@@ -177,6 +182,7 @@ def main():
         stargazers = pd.read_sql("SELECT * FROM stargazers", conn)
         stargazers["starred_at"] = pd.to_datetime(stargazers["starred_at"])
         stargazers_by_month = count_by_month(stargazers, "starred_at")
+        stargazers_by_month = stargazers_by_month[stargazers_by_month["date"] < this_month]
         stargazers_plot_path = plots_dir.joinpath("stargazers.html")
         make_plot(
             go.Scatter(
@@ -197,6 +203,7 @@ def main():
         discussions["created_at"] = pd.to_datetime(discussions["created_at"])
         discussions["updated_at"] = pd.to_datetime(discussions["updated_at"])
         discussions_by_month = count_by_month(discussions, "created_at")
+        discussions_by_month = discussions_by_month[discussions_by_month["date"] < this_month]
         discussions_plot_path = plots_dir.joinpath("discussions.html")
         make_plot(
             go.Scatter(
@@ -220,8 +227,10 @@ def main():
         # Issues
         opened_issues = issues[issues["is_pr"] == 0]
         opened_issues_by_month = count_by_month(opened_issues, "created_at")
+        opened_issues_by_month = opened_issues_by_month[opened_issues_by_month["date"] < this_month]
         closed_issues = opened_issues[opened_issues["state"] == "closed"]
         closed_issues_by_month = count_by_month(closed_issues, "closed_at")
+        closed_issues_by_month = closed_issues_by_month[closed_issues_by_month["date"] < this_month]
         issues_plot_path = plots_dir.joinpath("issues.html")
         make_plot(
             go.Scatter(
@@ -255,8 +264,10 @@ def main():
         )
         opened_pulls = opened_pulls[(opened_pulls._merge == "both")].drop("_merge", axis=1)
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
+        opened_pulls_by_month = opened_pulls_by_month[opened_pulls_by_month["date"] < this_month]
         closed_pulls = opened_pulls[opened_pulls["state"] == "closed"]
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
+        closed_pulls_by_month = closed_pulls_by_month[closed_pulls_by_month["date"] < this_month]
         pulls_maintainers_plot_path = plots_dir.joinpath("pulls_all.html")
         make_plot(
             go.Scatter(
@@ -291,8 +302,10 @@ def main():
         )
         opened_pulls = opened_pulls[(opened_pulls._merge == "left_only")].drop("_merge", axis=1)
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
+        opened_pulls_by_month = opened_pulls_by_month[opened_pulls_by_month["date"] < this_month]
         closed_pulls = opened_pulls[opened_pulls["state"] == "closed"]
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
+        closed_pulls_by_month = closed_pulls_by_month[closed_pulls_by_month["date"] < this_month]
         pulls_non_maintainers_plot_path = plots_dir.joinpath("pulls_non_maintainers.html")
         make_plot(
             go.Scatter(
