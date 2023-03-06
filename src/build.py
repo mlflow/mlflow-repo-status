@@ -64,6 +64,12 @@ def make_plot(*traces, title, x_tick_vals, x_axis_range, y_axis_range):
     return fig
 
 
+# Add avatar image to the table
+def get_avatar_img(row):
+    user_id = row["user_id"]
+    return f'<img src="https://avatars.githubusercontent.com/u/{user_id}" width="20" height="20" />'
+
+
 def main():
     pd.options.plotting.backend = "plotly"
     dist_dir = Path("dist")
@@ -71,7 +77,9 @@ def main():
         shutil.rmtree(dist_dir)
     dist_assets = dist_dir.joinpath("assets")
     plots_dir = dist_assets.joinpath("plots")
+    tables_dir = dist_assets.joinpath("tables")
     plots_dir.mkdir(parents=True, exist_ok=True)
+    tables_dir.mkdir(parents=True, exist_ok=True)
     db_path = Path("github.sqlite")
 
     now = datetime.now()
@@ -101,6 +109,9 @@ def main():
         # Contributors
         raw_commits = pd.read_sql("SELECT * FROM commits", conn)
         raw_commits["date"] = pd.to_datetime(raw_commits["date"])
+        raw_commits["user_url"] = raw_commits["user_login"].apply(
+            lambda login: f"https://github.com/{login}"
+        )
         users = pd.read_sql("SELECT * FROM users", conn)
         mlflow_org_members = pd.read_sql("SELECT * FROM mlflow_org_members", conn)
         # Filter out commits from mlflow org members
@@ -129,6 +140,60 @@ def main():
                 contributors_by_month[contributors_by_month["date"] >= year_ago]["count"]
             ),
         ).write_html(contributors_plot_path, include_plotlyjs="cdn")
+
+        commits_url_template = (
+            "https://github.com/mlflow/mlflow/commits?author={author}&since={since}&until={until}"
+        )
+        anchor_template = '<a href="{url}">{text}</a>'
+        six_month_ago = now - relativedelta(months=6)
+        active_contributors = (
+            commits[commits["date"] >= six_month_ago]
+            .groupby(["user_url", "user_login", "user_id"])
+            # Latest commit
+            .agg({"date": "max", "id": "count"})
+            # .count()
+            .sort_values("id", ascending=False)
+            .head(10)[["id", "date"]]
+            .rename(columns={"id": "PRs", "date": "last_commit_date"})
+            .reset_index()
+            .assign(
+                commits=lambda df: df.apply(
+                    lambda row: commits_url_template.format(
+                        author=row["user_login"],
+                        since=six_month_ago.strftime("%Y-%m-%d"),
+                        until=now.strftime("%Y-%m-%d"),
+                    ),
+                    axis=1,
+                )
+            )
+            .assign(
+                user=lambda df: df.apply(
+                    lambda row: anchor_template.format(url=row["user_url"], text=row["user_login"]),
+                    axis=1,
+                ),
+                PRs=lambda df: df.apply(
+                    lambda row: anchor_template.format(url=row["commits"], text=row["PRs"]),
+                    axis=1,
+                ),
+            )
+            .assign(avatar=lambda df: df.apply(lambda row: get_avatar_img(row), axis=1))
+            .assign(
+                last_commit_date=lambda df: df.apply(
+                    lambda row: row["last_commit_date"].strftime("%Y-%m-%d"), axis=1
+                )
+            )
+            .drop(["user_login", "user_url", "commits"], axis=1)[
+                ["user", "avatar", "PRs", "last_commit_date"]
+            ]
+        )
+
+        active_contributors_path = tables_dir.joinpath("active_contributors.html")
+        active_contributors.to_html(
+            active_contributors_path,
+            escape=False,
+            index=False,
+            justify="center",
+        )
 
         first_commits = raw_commits.sort_values("date").groupby("user_name").head(1)
         total_contributors_by_month = count_by_month(first_commits, "date")
@@ -345,15 +410,32 @@ def main():
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="{favicon}" sizes="any" type="image/svg+xml">
     <title>MLflow Repository Status</title>
+    <style>
+      table {{
+        margin: auto;
+        border-collapse: collapse;
+        border: 1px solid black;
+      }}
+        th, td {{
+          border: 1px solid black;
+          padding: 5px;
+        }}
+    </style>
   </head>
   <body>
     <div style="text-align: center">
       <a href="https://github.com/mlflow/mlflow">
         <img src="{logo}" alt="logo" height="100px" />
       </a>
-      <h1 style="font-size: 36px; font-family: Arial;">
+      <h1 style="font-family: Arial;">
         Repository Status (updated at {updated_at})
       </h1>
+    </div>
+    <div style="text-align: center">
+      <h2 style="font-family: Arial;">
+        Active Contributors (in the last six months) Thank You!
+      </h2>
+      <div>{active_contributors_table}</div>
     </div>
     {plots}
   </body>
@@ -386,6 +468,7 @@ def main():
             favicon=favicon_dst.relative_to(dist_dir),
             updated_at=now.strftime("%Y-%m-%d %H:%M:%S"),
             plots=plots_html,
+            active_contributors_table=active_contributors_path.read_text(),
         )
     )
 

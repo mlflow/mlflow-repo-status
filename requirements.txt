@@ -5,3 +5,4 @@ plotly
 black
 isort
 flake8
+jinja2
