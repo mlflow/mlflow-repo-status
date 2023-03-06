@@ -185,6 +185,7 @@ def main():
             .drop(["user_login", "user_url", "commits"], axis=1)[
                 ["user", "avatar", "PRs", "last_commit_date"]
             ]
+            .rename(columns={"PRs": "PRs (within last 6 months)"})
         )
 
         active_contributors_path = tables_dir.joinpath("active_contributors.html")
@@ -433,7 +434,7 @@ def main():
     </div>
     <div style="text-align: center">
       <h2 style="font-family: Arial;">
-        Active Contributors (in the last six months) Thank You!
+        Thank you for your contributions!
       </h2>
       <div>{active_contributors_table}</div>
     </div>
