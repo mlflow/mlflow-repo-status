@@ -32,6 +32,9 @@ jobs:
           python src/build.py
         env:
           GITHUB_TOKEN: ${{ secrets.HARUPY_GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          path: dist
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         if: github.event_name != 'pull_request'
