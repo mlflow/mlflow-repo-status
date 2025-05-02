@@ -205,7 +205,10 @@ query {
             self.per_page,
         )
         after = None
+        page = 0
         while True:
+            page += 1
+            logger.info(f"Issues page {page}")
             q = query if after is None else query_with_cursor.replace("AFTER", after)
             data = self.run_graphql_query(q)
             issues = data["data"]["repository"]["issues"]
@@ -296,7 +299,10 @@ query {
             self.per_page,
         )
         after = None
+        page = 0
         while True:
+            page += 1
+            logger.info(f"Pulls page {page}")
             q = query if after is None else query_with_cursor.replace("AFTER", after)
             data = self.run_graphql_query(q)
             pulls = data["data"]["repository"]["pullRequests"]
