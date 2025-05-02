@@ -297,6 +297,10 @@ def main():
         closed_issues = opened_issues[opened_issues["state"] == "closed"]
         closed_issues_by_month = count_by_month(closed_issues, "closed_at")
         issues_plot_path = plots_dir.joinpath("issues.html")
+        print(
+            opened_issues_by_month[opened_issues_by_month["date"] >= year_ago]["count"],
+            closed_issues_by_month[closed_issues_by_month["date"] >= year_ago]["count"],
+        )
         make_plot(
             go.Scatter(
                 x=opened_issues_by_month["date"],
