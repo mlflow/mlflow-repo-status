@@ -225,6 +225,7 @@ query {
                         "login": node["author"]["login"] if node["author"] else None,
                     }
                 node["pullRequest"] = False
+                node["state"] = node["state"].lower()
                 yield node
             page_info = issues["pageInfo"]
             after = page_info["endCursor"]
@@ -235,7 +236,7 @@ query {
         query = """
 query {
   repository(owner: "%s", name: "%s") {
-    pullRequests(first: %d, states: [OPEN, CLOSED], orderBy: {field: CREATED_AT, direction: ASC}) {
+    pullRequests(first: %d, states: [OPEN, CLOSED, MERGED], orderBy: {field: CREATED_AT, direction: ASC}) {
       totalCount
       pageInfo {
         endCursor
@@ -269,7 +270,7 @@ query {
         query_with_cursor = """
 query {
   repository(owner: "%s", name: "%s") {
-    pullRequests(first: %d, states: [OPEN, CLOSED], after: "AFTER", orderBy: {field: CREATED_AT, direction: ASC}) {
+    pullRequests(first: %d, states: [OPEN, CLOSED, MERGED], after: "AFTER", orderBy: {field: CREATED_AT, direction: ASC}) {
       totalCount
       pageInfo {
         endCursor
@@ -319,6 +320,7 @@ query {
                         "login": node["author"]["login"] if node["author"] else None,
                     }
                 node["pullRequest"] = True
+                node["state"] = node["state"].lower()
                 yield node
             page_info = pulls["pageInfo"]
             after = page_info["endCursor"]

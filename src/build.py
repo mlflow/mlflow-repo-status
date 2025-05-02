@@ -357,7 +357,7 @@ def main():
         )
         opened_pulls = opened_pulls[(opened_pulls._merge == "left_only")].drop("_merge", axis=1)
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
-        closed_pulls = opened_pulls[opened_pulls["state"] == "closed"]
+        closed_pulls = opened_pulls[opened_pulls["state"] == "closed" | opened_pulls["state"] == "merged"]
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
         pulls_non_maintainers_plot_path = plots_dir.joinpath("pulls_non_maintainers.html")
         make_plot(
