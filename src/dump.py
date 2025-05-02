@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import itertools
 from datetime import datetime
 from pathlib import Path
 from pprint import pprint
@@ -75,8 +76,7 @@ def main():
         logger.info("Collecting issues")
         issues = g.get_issues_graphql(*repo)
         pulls = g.get_pulls_graphql(*repo)
-        session.add_all(M.Issue.from_gh_objects(issues))
-        session.add_all(M.Issue.from_gh_objects(pulls))
+        session.add_all(M.Issue.from_gh_objects(itertools.chain(issues, pulls)))
 
         logger.info("Collecting discussions")
         discussions = g.get_discussions(*repo)
