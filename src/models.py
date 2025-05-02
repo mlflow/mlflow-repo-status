@@ -120,7 +120,7 @@ class Stargazer(BaseModel):
 class Issue(BaseModel):
     __tablename__ = "issues"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     user_id = Column(Integer, primary_key=True)
     number = Column(Integer)
     title = Column(String)
