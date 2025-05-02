@@ -134,7 +134,6 @@ class Issue(BaseModel):
 
     @classmethod
     def from_gh_object(cls, issue):
-        closed_at = issue.get("closed_at")
         return cls(
             id=issue["id"],
             user_id=issue["user"]["id"],
@@ -142,7 +141,7 @@ class Issue(BaseModel):
             title=issue["title"],
             body=issue["body"],
             state=issue["state"],
-            closed_at=closed_at and parse_datetime(closed_at),
+            closed_at=(ca := issue.get("closedAt")) and parse_datetime(ca),
             created_at=parse_datetime(issue["createdAt"]),
             updated_at=parse_datetime(issue["updatedAt"]),
             html_url=issue["url"],
