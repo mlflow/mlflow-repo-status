@@ -80,7 +80,7 @@ class Commit(BaseModel):
     id = Column(String(40), primary_key=True)
     html_url = Column(String)
     url = Column(String)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
     user_name = Column(String, nullable=True)
     user_login = Column(String, nullable=True)
     user_email = Column(String, nullable=True)
@@ -92,7 +92,7 @@ class Commit(BaseModel):
             id=commit["sha"],
             url=commit["url"],
             html_url=commit["html_url"],
-            user_id=(commit.get("author") or {}).get("id", 0),
+            user_id=(commit.get("author") or {}).get("node_id", 0),
             user_name=(commit["commit"].get("author") or {}).get("name", ""),
             user_login=(commit.get("author") or {}).get("login", ""),
             user_email=(commit["commit"].get("author") or {}).get("email", ""),
@@ -103,7 +103,7 @@ class Commit(BaseModel):
 class Stargazer(BaseModel):
     __tablename__ = "stargazers"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     starred_at = Column(DateTime)
     user_id = Column(Integer, ForeignKey("users.id"))
 
@@ -113,7 +113,7 @@ class Stargazer(BaseModel):
             return
         return cls(
             starred_at=parse_datetime(stargazer["starred_at"]),
-            user_id=stargazer["user"]["id"],
+            user_id=stargazer["user"]["node_id"],
         )
 
 
