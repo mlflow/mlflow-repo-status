@@ -54,7 +54,7 @@ class User(BaseModel):
 class MlflowOrgMember(BaseModel):
     __tablename__ = "mlflow_org_members"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     login = Column(String, unique=True)
 
     @classmethod
