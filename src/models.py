@@ -54,7 +54,7 @@ class User(BaseModel):
 class MlflowOrgMember(BaseModel):
     __tablename__ = "mlflow_org_members"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     login = Column(String, unique=True)
 
     @classmethod
@@ -80,7 +80,7 @@ class Commit(BaseModel):
     id = Column(String(40), primary_key=True)
     html_url = Column(String)
     url = Column(String)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
     user_name = Column(String, nullable=True)
     user_login = Column(String, nullable=True)
     user_email = Column(String, nullable=True)
@@ -92,7 +92,7 @@ class Commit(BaseModel):
             id=commit["sha"],
             url=commit["url"],
             html_url=commit["html_url"],
-            user_id=(commit.get("author") or {}).get("id", 0),
+            user_id=(commit.get("author") or {}).get("node_id", 0),
             user_name=(commit["commit"].get("author") or {}).get("name", ""),
             user_login=(commit.get("author") or {}).get("login", ""),
             user_email=(commit["commit"].get("author") or {}).get("email", ""),
@@ -103,7 +103,7 @@ class Commit(BaseModel):
 class Stargazer(BaseModel):
     __tablename__ = "stargazers"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     starred_at = Column(DateTime)
     user_id = Column(Integer, ForeignKey("users.id"))
 
@@ -113,14 +113,14 @@ class Stargazer(BaseModel):
             return
         return cls(
             starred_at=parse_datetime(stargazer["starred_at"]),
-            user_id=stargazer["user"]["id"],
+            user_id=stargazer["user"]["node_id"],
         )
 
 
 class Issue(BaseModel):
     __tablename__ = "issues"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     user_id = Column(Integer, primary_key=True)
     number = Column(Integer)
     title = Column(String)
@@ -134,7 +134,6 @@ class Issue(BaseModel):
 
     @classmethod
     def from_gh_object(cls, issue):
-        closed_at = issue.get("closed_at")
         return cls(
             id=issue["id"],
             user_id=issue["user"]["id"],
@@ -142,11 +141,11 @@ class Issue(BaseModel):
             title=issue["title"],
             body=issue["body"],
             state=issue["state"],
-            closed_at=closed_at and parse_datetime(closed_at),
-            created_at=parse_datetime(issue["created_at"]),
-            updated_at=parse_datetime(issue["updated_at"]),
-            html_url=issue["html_url"],
-            is_pr="pull_request" in issue,
+            closed_at=(ca := issue.get("closedAt")) and parse_datetime(ca),
+            created_at=parse_datetime(issue["createdAt"]),
+            updated_at=parse_datetime(issue["updatedAt"]),
+            html_url=issue["url"],
+            is_pr=issue.get("pullRequest", False),
         )
 
 

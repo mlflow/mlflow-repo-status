@@ -37,7 +37,8 @@ class GitHubApiClient:
         while True:
             logger.info(f"{end_point} {page}")
             res = self.get(
-                end_point, params={**(params or {}), "page": page, "per_page": self.per_page}
+                end_point,
+                params={**(params or {}), "page": page, "per_page": self.per_page},
             )
             yield from res
             if len(res) < self.per_page:
@@ -132,6 +133,196 @@ query {
             yield from discussions["nodes"]
 
             page_info = discussions["pageInfo"]
+            after = page_info["endCursor"]
+            if not page_info["hasNextPage"]:
+                break
+
+    def get_issues_graphql(self, owner, repo):
+        query = """
+query {
+  repository(owner: "%s", name: "%s") {
+    issues(first: %d, states: [OPEN, CLOSED], orderBy: {field: CREATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        id
+        number
+        title
+        body
+        state
+        closedAt
+        createdAt
+        updatedAt
+        url
+        author {
+          login
+          ... on User { id }
+        }
+      }
+    }
+  }
+}
+""" % (
+            owner,
+            repo,
+            self.per_page,
+            # state,
+        )
+
+        query_with_cursor = """
+query {
+  repository(owner: "%s", name: "%s") {
+    issues(first: %d, states: [OPEN, CLOSED], after: "AFTER", orderBy: {field: CREATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        id
+        number
+        title
+        body
+        state
+        closedAt
+        createdAt
+        updatedAt
+        url
+        author {
+          login
+          ... on User { id }
+        }
+      }
+    }
+  }
+}
+""" % (
+            owner,
+            repo,
+            self.per_page,
+        )
+        after = None
+        page = 0
+        while True:
+            page += 1
+            logger.info(f"Issues page {page}")
+            q = query if after is None else query_with_cursor.replace("AFTER", after)
+            data = self.run_graphql_query(q)
+            issues = data["data"]["repository"]["issues"]
+            for node in issues["nodes"]:
+                # Normalize author and pullRequest for compatibility with models.py
+                if node["author"] and "id" in node["author"]:
+                    node["user"] = {
+                        "id": node["author"]["id"],
+                        "login": node["author"]["login"],
+                    }
+                else:
+                    node["user"] = {
+                        "id": 0,
+                        "login": node["author"]["login"] if node["author"] else None,
+                    }
+                node["pullRequest"] = False
+                node["state"] = node["state"].lower()
+                yield node
+            page_info = issues["pageInfo"]
+            after = page_info["endCursor"]
+            if not page_info["hasNextPage"]:
+                break
+
+    def get_pulls_graphql(self, owner, repo):
+        query = """
+query {
+  repository(owner: "%s", name: "%s") {
+    pullRequests(first: %d, states: [OPEN, CLOSED, MERGED], orderBy: {field: CREATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        id
+        number
+        title
+        body
+        state
+        closedAt
+        createdAt
+        updatedAt
+        url
+        author {
+          login
+          ... on User { id }
+        }
+      }
+    }
+  }
+}
+""" % (
+            owner,
+            repo,
+            self.per_page,
+            # state,
+        )
+
+        query_with_cursor = """
+query {
+  repository(owner: "%s", name: "%s") {
+    pullRequests(first: %d, states: [OPEN, CLOSED, MERGED], after: "AFTER", orderBy: {field: CREATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        id
+        number
+        title
+        body
+        state
+        closedAt
+        createdAt
+        updatedAt
+        url
+        author {
+          login
+          ... on User { id }
+        }
+      }
+    }
+  }
+}
+""" % (
+            owner,
+            repo,
+            self.per_page,
+        )
+        after = None
+        page = 0
+        while True:
+            page += 1
+            logger.info(f"Pulls page {page}")
+            q = query if after is None else query_with_cursor.replace("AFTER", after)
+            data = self.run_graphql_query(q)
+            pulls = data["data"]["repository"]["pullRequests"]
+            for node in pulls["nodes"]:
+                # Normalize author and pullRequest for compatibility with models.py
+                if node["author"] and "id" in node["author"]:
+                    node["user"] = {
+                        "id": node["author"]["id"],
+                        "login": node["author"]["login"],
+                    }
+                else:
+                    node["user"] = {
+                        "id": 0,
+                        "login": node["author"]["login"] if node["author"] else None,
+                    }
+                node["pullRequest"] = True
+                node["state"] = node["state"].lower()
+                yield node
+            page_info = pulls["pageInfo"]
             after = page_info["endCursor"]
             if not page_info["hasNextPage"]:
                 break
