@@ -143,10 +143,10 @@ class Issue(BaseModel):
             body=issue["body"],
             state=issue["state"],
             closed_at=closed_at and parse_datetime(closed_at),
-            created_at=parse_datetime(issue["created_at"]),
-            updated_at=parse_datetime(issue["updated_at"]),
-            html_url=issue["html_url"],
-            is_pr="pull_request" in issue,
+            created_at=parse_datetime(issue["createdAt"]),
+            updated_at=parse_datetime(issue["updatedAt"]),
+            html_url=issue["url"],
+            is_pr=issue.get("pullRequest", False),
         )
 
 

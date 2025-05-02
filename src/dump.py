@@ -44,7 +44,7 @@ def main():
         g = GitHubApiClient(per_page=100)
         pprint(g.get_rate_limit())
         since = datetime(1970, 1, 1)
-        # since = datetime(2022, 7, 1)
+        # since = datetime(2025, 4, 1)
 
         logger.info("Collecting commits")
         commits = g.get_commits(
@@ -61,22 +61,22 @@ def main():
 
         logger.info("Collecting mlflow org members")
         mlflow_org_members = set(
-            HashableDict(id=m["id"], login=m["login"]) for m in g.get_organization_members("mlflow")
+            HashableDict(id=m["id"], login=m["login"])
+            for m in g.get_organization_members("mlflow")
         )
         collaborators = set(
-            HashableDict(id=c["id"], login=c["login"]) for c in g.get_collaborators(*repo)
+            HashableDict(id=c["id"], login=c["login"])
+            for c in g.get_collaborators(*repo)
         )
-        session.add_all(M.MlflowOrgMember.from_gh_objects(mlflow_org_members.union(collaborators)))
+        session.add_all(
+            M.MlflowOrgMember.from_gh_objects(mlflow_org_members.union(collaborators))
+        )
 
         logger.info("Collecting issues")
-        issues = g.get_issues(
-            *repo,
-            params={
-                "state": "all",
-                "since": since,
-            },
-        )
+        issues = g.get_issues_graphql(*repo)
+        pulls = g.get_pulls_graphql(*repo)
         session.add_all(M.Issue.from_gh_objects(issues))
+        session.add_all(M.Issue.from_gh_objects(pulls))
 
         logger.info("Collecting discussions")
         discussions = g.get_discussions(*repo)
