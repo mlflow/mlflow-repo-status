@@ -32,7 +32,7 @@ jobs:
           python src/build.py
         env:
           GITHUB_TOKEN: ${{ secrets.HARUPY_GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: dist
       - name: Deploy 🚀
