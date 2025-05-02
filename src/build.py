@@ -336,7 +336,7 @@ def main():
         )
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
         closed_pulls = opened_pulls[opened_pulls["state"].isin(["closed", "merged"])]
-        print(closed_pulls)
+        print(opened_pulls, closed_pulls)
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
         pulls_maintainers_plot_path = plots_dir.joinpath("pulls_all.html")
         make_plot(
