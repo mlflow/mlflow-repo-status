@@ -24,7 +24,9 @@ def count_by_month(df, datetime_col):
         .pipe(
             lambda df_: (
                 df_.set_index(
-                    df_.index.map(lambda year_month: datetime(year_month[0], year_month[1], 1))
+                    df_.index.map(
+                        lambda year_month: datetime(year_month[0], year_month[1], 1)
+                    )
                 )
             )
         )
@@ -136,13 +138,13 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                contributors_by_month[contributors_by_month["date"] >= year_ago]["count"]
+                contributors_by_month[contributors_by_month["date"] >= year_ago][
+                    "count"
+                ]
             ),
         ).write_html(contributors_plot_path, include_plotlyjs="cdn")
 
-        commits_url_template = (
-            "https://github.com/mlflow/mlflow/commits?author={author}&since={since}&until={until}"
-        )
+        commits_url_template = "https://github.com/mlflow/mlflow/commits?author={author}&since={since}&until={until}"
         anchor_template = '<a href="{url}">{text}</a>'
         six_month_ago = now - relativedelta(months=6)
         active_contributors = (
@@ -167,11 +169,15 @@ def main():
             )
             .assign(
                 user=lambda df: df.apply(
-                    lambda row: anchor_template.format(url=row["user_url"], text=row["user_login"]),
+                    lambda row: anchor_template.format(
+                        url=row["user_url"], text=row["user_login"]
+                    ),
                     axis=1,
                 ),
                 PRs=lambda df: df.apply(
-                    lambda row: anchor_template.format(url=row["commits"], text=row["PRs"]),
+                    lambda row: anchor_template.format(
+                        url=row["commits"], text=row["PRs"]
+                    ),
                     axis=1,
                 ),
             )
@@ -197,7 +203,9 @@ def main():
 
         first_commits = raw_commits.sort_values("date").groupby("user_name").head(1)
         total_contributors_by_month = count_by_month(first_commits, "date")
-        total_contributors_by_month["count"] = total_contributors_by_month["count"].cumsum()
+        total_contributors_by_month["count"] = total_contributors_by_month[
+            "count"
+        ].cumsum()
         total_contributors_path = plots_dir.joinpath("total_contributors.html")
         make_plot(
             go.Scatter(
@@ -209,9 +217,9 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                total_contributors_by_month[total_contributors_by_month["date"] >= year_ago][
-                    "count"
-                ]
+                total_contributors_by_month[
+                    total_contributors_by_month["date"] >= year_ago
+                ]["count"]
             ),
         ).write_html(total_contributors_path, include_plotlyjs="cdn")
 
@@ -306,8 +314,12 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                opened_issues_by_month[opened_issues_by_month["date"] >= year_ago]["count"],
-                closed_issues_by_month[closed_issues_by_month["date"] >= year_ago]["count"],
+                opened_issues_by_month[opened_issues_by_month["date"] >= year_ago][
+                    "count"
+                ],
+                closed_issues_by_month[closed_issues_by_month["date"] >= year_ago][
+                    "count"
+                ],
             ),
         ).write_html(issues_plot_path, include_plotlyjs="cdn")
 
@@ -319,9 +331,14 @@ def main():
             how="outer",
             indicator=True,
         )
-        opened_pulls = opened_pulls[(opened_pulls._merge == "both")].drop("_merge", axis=1)
+        opened_pulls = opened_pulls[(opened_pulls._merge == "both")].drop(
+            "_merge", axis=1
+        )
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
-        closed_pulls = opened_pulls[opened_pulls["state"] == "closed"]
+        closed_pulls = opened_pulls[
+            opened_pulls["state"] == "closed" | opened_pulls["state"] == "merged"
+        ]
+        print(closed_pulls)
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
         pulls_maintainers_plot_path = plots_dir.joinpath("pulls_all.html")
         make_plot(
@@ -341,8 +358,12 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                opened_pulls_by_month[opened_pulls_by_month["date"] >= year_ago]["count"],
-                closed_pulls_by_month[closed_pulls_by_month["date"] >= year_ago]["count"],
+                opened_pulls_by_month[opened_pulls_by_month["date"] >= year_ago][
+                    "count"
+                ],
+                closed_pulls_by_month[closed_pulls_by_month["date"] >= year_ago][
+                    "count"
+                ],
             ),
         ).write_html(pulls_maintainers_plot_path, include_plotlyjs="cdn")
 
@@ -355,11 +376,17 @@ def main():
             how="outer",
             indicator=True,
         )
-        opened_pulls = opened_pulls[(opened_pulls._merge == "left_only")].drop("_merge", axis=1)
+        opened_pulls = opened_pulls[(opened_pulls._merge == "left_only")].drop(
+            "_merge", axis=1
+        )
         opened_pulls_by_month = count_by_month(opened_pulls, "created_at")
-        closed_pulls = opened_pulls[opened_pulls["state"] == "closed" | opened_pulls["state"] == "merged"]
+        closed_pulls = opened_pulls[
+            opened_pulls["state"] == "closed" | opened_pulls["state"] == "merged"
+        ]
         closed_pulls_by_month = count_by_month(closed_pulls, "closed_at")
-        pulls_non_maintainers_plot_path = plots_dir.joinpath("pulls_non_maintainers.html")
+        pulls_non_maintainers_plot_path = plots_dir.joinpath(
+            "pulls_non_maintainers.html"
+        )
         make_plot(
             go.Scatter(
                 x=opened_pulls_by_month["date"],
@@ -377,8 +404,12 @@ def main():
             x_tick_vals=x_tick_vals,
             x_axis_range=x_axis_range,
             y_axis_range=get_y_axis_range(
-                opened_pulls_by_month[opened_pulls_by_month["date"] >= year_ago]["count"],
-                closed_pulls_by_month[closed_pulls_by_month["date"] >= year_ago]["count"],
+                opened_pulls_by_month[opened_pulls_by_month["date"] >= year_ago][
+                    "count"
+                ],
+                closed_pulls_by_month[closed_pulls_by_month["date"] >= year_ago][
+                    "count"
+                ],
             ),
         ).write_html(pulls_non_maintainers_plot_path, include_plotlyjs="cdn")
 
@@ -441,7 +472,9 @@ def main():
         iframes = []
         for plot in plots:
             iframes.append(iframe_html_template.format(src=plot.relative_to(dist_dir)))
-        plots_html += '<div style="display: flex">{plots}</div>'.format(plots="".join(iframes))
+        plots_html += '<div style="display: flex">{plots}</div>'.format(
+            plots="".join(iframes)
+        )
 
     logo = Path("assets", "MLflow-logo-final-black.png")
     favicon = Path("assets", "icon.svg")
