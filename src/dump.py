@@ -62,11 +62,11 @@ def main():
 
         logger.info("Collecting mlflow org members")
         mlflow_org_members = set(
-            HashableDict(id=m["id"], login=m["login"])
+            HashableDict(id=m["node_id"], login=m["login"])
             for m in g.get_organization_members("mlflow")
         )
         collaborators = set(
-            HashableDict(id=c["id"], login=c["login"])
+            HashableDict(id=c["node_id"], login=c["login"])
             for c in g.get_collaborators(*repo)
         )
         session.add_all(
